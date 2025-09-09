@@ -1,0 +1,44 @@
+<!-- templates/index.html -->
+{% extends "layout.html" %}
+{% block title %}ToDo | Azure Entra ID{% endblock %}
+{% block content %}
+<div class="card shadow-sm">
+  <div class="card-body">
+    <h5 class="card-title">新しいタスク</h5>
+    <form method="post" action="{{ url_for('add') }}" class="row g-2">
+      <div class="col-12 col-md-10">
+        <input name="title" class="form-control" placeholder="例：論文の図を修正する" required>
+      </div>
+      <div class="col-12 col-md-2 d-grid">
+        <button class="btn btn-primary">追加</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<div class="mt-4">
+  <h5>あなたのタスク</h5>
+  {% if todos %}
+  <ul class="list-group">
+    {% for t in todos %}
+    <li class="list-group-item d-flex align-items-center justify-content-between">
+      <div>
+        <form method="post" action="{{ url_for('toggle', todo_id=t.id) }}" class="d-inline">
+          <button class="btn btn-sm {{ 'btn-success' if t.is_done else 'btn-outline-secondary' }}">
+            {{ '完了' if t.is_done else '未完了' }}
+          </button>
+        </form>
+        <span class="ms-2 {{ 'text-decoration-line-through text-muted' if t.is_done }}">{{ t.title }}</span>
+        <span class="ms-2 text-muted small">#{{ t.id }}</span>
+      </div>
+      <form method="post" action="{{ url_for('delete', todo_id=t.id) }}" onsubmit="return confirm('削除しますか？');">
+        <button class="btn btn-sm btn-outline-danger">削除</button>
+      </form>
+    </li>
+    {% endfor %}
+  </ul>
+  {% else %}
+  <div class="text-muted">まだタスクがありません。</div>
+  {% endif %}
+</div>
+{% endblock %}

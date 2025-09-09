@@ -1,0 +1,6 @@
+Flask==3.0.3
+Werkzeug==3.0.3
+SQLAlchemy==2.0.32
+msal==1.30.0
+pyodbc==5.1.0
+gunicorn==22.0.0
