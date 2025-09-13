@@ -1,0 +1,13 @@
+services:
+  todoapp:
+    build: .
+    container_name: todoapp
+    restart: always
+    env_file:
+      - .env
+    ports:
+      # 本番で Nginx を立てる場合は 127.0.0.1 にバインド推奨
+      - "80:8000"
+    # Nginx を併用する場合は以下のように書き換える
+    # ports:
+    #   - "127.0.0.1:8000:8000"
