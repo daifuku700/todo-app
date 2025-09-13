@@ -18,29 +18,24 @@ https://<あなたのFQDN>/ にアクセスすると、Entra IDで認証が行�
 
 リバースプロキシ (推奨): Nginx + Let's Encrypt (HTTPS化)
 
-1. Azureリソースの準備 (VMとPublic IP/DNS)
+## 1. Azureリソースの準備 (VMとPublic IP/DNS)
+
 1.1. 仮想マシン (VM) の作成
+
 Azureポータルから以下の設定で仮想マシンを作成します。
 
-リソースグループ: 任意 (例: rg-todo)
-
-イメージ: Ubuntu 22.04 LTS
-
-サイズ: B1ms 〜 B2s (小規模)
-
-認証: SSH公開鍵
+基本設定:
+  - リソースグループ: 任意 (例: rg-todo)
+  - イメージ: Ubuntu 22.04 LTS
+  - サイズ: B2s
+  - 認証: パスワード
 
 ネットワーク:
-
-新しいNSG (ネットワークセキュリティグループ) を作成し、以下の受信ポートを許可します。
-
-HTTP (80/TCP)
-
-HTTPS (443/TCP)
-
-SSH (22/TCP)
-
-パブリックIP: 静的 (Static) を選択します。
+  - 新しいNSG (ネットワークセキュリティグループ) を作成し、以下の受信ポートを許可します。
+    - HTTP (80/TCP)
+    - HTTPS (443/TCP)
+    - SSH (22/TCP)
+  - パブリックIP: 静的 (Static) を選択します。
 
 1.2. Public IPへのDNSラベル割り当て
 作成したPublic IPリソースを開きます。
@@ -51,7 +46,8 @@ SSH (22/TCP)
 
 📝 Note: このFQDNは、後のEntra ID設定や環境変数で 本番URLとして何度も使用します。以後、このFQDNを <FQDN> と表記します。
 
-2. Azure Entra ID アプリケーションの登録
+## 2. Azure Entra ID アプリケーションの登録
+
 2.1. 新規アプリ登録
 Azureポータルで Azure Entra ID に移動します。
 
@@ -94,7 +90,8 @@ OIDC_SCOPES: openid profile email (デフォルトのスコープ。Microsoft Gr
 
 🔒 アクセス制御: 特定のユーザーのみにサインインを許可したい場合は、「エンタープライズアプリケーション」から該当アプリを選択し、「プロパティ」で 「ユーザーの割り当てが必要ですか?」を「はい」 に設定後、「ユーザーとグループ」で対象ユーザーを割り当ててください。
 
-3. Azure SQL Database の準備
+## 3. Azure SQL Database の準備
+
 3.1. サーバーとデータベースの作成
 SQLサーバー を作成します。(例: todo-sqls-japaneast)
 
@@ -114,8 +111,7 @@ SQLサーバー を作成します。(例: todo-sqls-japaneast)
 3.3. アプリケーション用ユーザーの作成
 ポータルのクエリエディター (プレビュー) を使い、サーバー管理者としてサインインして以下のSQLクエリを実行します。
 
-SQL
-
+```sql
 -- アプリケーション用のコンテインドユーザーを作成
 CREATE USER [todo_user] WITH PASSWORD = 'Strong_Pa55word_ChangeMe!';
 
@@ -124,66 +120,66 @@ ALTER ROLE db_datareader ADD MEMBER [todo_user];
 ALTER ROLE db_datawriter ADD MEMBER [todo_user];
 ALTER ROLE db_ddladmin  ADD MEMBER [todo_user];  -- 初回起動時のテーブル作成(CREATE TABLE)に必要
 💡 Tip: アプリケーションの初回起動後、テーブルが作成されたら、セキュリティ向上のために db_ddladmin 権限は削除することを推奨します。
+```
 
 3.4. 接続文字列の準備
 後ほど .env ファイルで使用する接続文字列を準備します。
 
+```sql
 mssql+pyodbc://todo_user:Strong_Pa55word_ChangeMe!@<server>.database.windows.net:1433/tododb?driver=ODBC+Driver+18+for+SQL+Server&Encrypt=yes&TrustServerCertificate=no&Connection+Timeout=30
+```
+
 <server> はSQLサーバー名に置き換えてください。
 
-4. 仮想マシン (VM) のセットアップ
+## 4. 仮想マシン (VM) のセットアップ
+
 VMにSSHで接続し、以下のコマンドを実行します。
 
 4.1. 基本設定とDockerのインストール
 Bash
 
-# パッケージリストの更新とアップグレード
+### パッケージリストの更新とアップグレード
 
+```bash
 sudo apt-get update -y && sudo apt-get upgrade -y
 
 # Dockerのインストールと有効化
-
 sudo apt-get install -y docker.io
 sudo systemctl enable --now docker
 sudo usermod -aG docker $USER
 
 # 変更を反映するために一度ログアウトし、再接続してください
-
 exit
+```
+
 4.2. アプリケーションの配置
 SSHで再接続後、アプリケーションのソースコードを配置します。
 
-Bash
+### アプリケーション用ディレクトリを作成
 
-# アプリケーション用ディレクトリを作成
-
+```bash
 mkdir -p ~/apps && cd ~/apps
-
-# Gitを使う場合 (推奨)
-
-# git clone https://.../todoapp.git
-
-# または、SFTP等でリポジトリのファイル一式を `~/apps/todoapp` にアップロード
+git clone git@github.com:daifuku700/todo-app.git
+```
 
 4.3. .env ファイルの作成と編集
 todoapp ディレクトリに移動し、環境変数ファイルを作成・編集します。
 
-Bash
+```bash
+cp todo-app/.env.example todo-app/.env
+nano todo-app/.env
+```
 
-cp todoapp/.env.example todoapp/.env
-nano todoapp/.env
 ファイルの内容を、これまでに控えたあなたの値で 必ず 編集してください。
 
-コード スニペット
+### .env.example をコピーして作成
 
-# .env.example をコピーして作成
-
-# Flask App Settings
+### Flask App Settings
 
 FLASK_SECRET_KEY=<強力なランダム文字列を生成して設定>
 PORT=8000
 
-# Entra ID Settings
+### Entra ID Settings
 
 TENANT_ID=<Entra のテナントID>
 CLIENT_ID=<アプリ登録のクライアントID>
@@ -193,50 +189,57 @@ REDIRECT_URI=https://<FQDN>/callback
 POST_LOGOUT_REDIRECT_URI=https://<FQDN>/
 OIDC_SCOPES=openid profile email
 
-# Azure SQL Database Settings
+### Azure SQL Database Settings
 
 AZURE_SQL_CONNECTION_STRING=mssql+pyodbc://todo_user:Strong_Pa55word_ChangeMe!@<server>.database.windows.net:1433/tododb?driver=ODBC+Driver+18+for+SQL+Server&Encrypt=yes&TrustServerCertificate=no&Connection+Timeout=30
-5. コンテナのビルドと起動
+
+## 5. コンテナのビルドと起動
+
 todoapp ディレクトリ内で作業します。
 
-Bash
+```bash
+cd ~/apps/todo-app
+```
 
-cd ~/apps/todoapp
 5.1. Dockerイメージのビルド
 DockerfileにはODBC Driver 18のセットアップも含まれています。
 
-Bash
-
+```bash
 docker build -t todoapp:latest .
+```
+
 5.2. コンテナの起動
 この時点では、HTTP (80) で直接コンテナを公開します。
 
-Bash
-
+```bash
 docker run -d --name todoapp \
   --restart=always \
   --env-file .env \
   -p 80:8000 \
-  todoapp:latest
+  todoapp:latest]
+```
+
 5.3. 動作確認
 VM内部からの確認:
 
-Bash
-
+```bash
 curl -I <http://localhost/>
+```
 
-# HTTP/1.1 302 Found (サインインページへのリダイレクト) が返ればOK
+### HTTP/1.1 302 Found (サインインページへのリダイレクト) が返ればOK
 
 外部からの確認:
 ブラウザで http://<FQDN>/ にアクセスし、Entra IDのサインイン画面にリダイレクトされることを確認します。
 
 ✅ DBテーブル作成: 最初のユーザーがログインに成功すると、db_ddladmin権限によって todos テーブルが自動的にデータベース内に作成されます。
 
-6. 【推奨】本番運用のためのHTTPS化 (Nginx + Let's Encrypt)
+## 6. 【推奨】本番運用のためのHTTPS化 (Nginx + Let's Encrypt)
+
 TLS終端をNginxリバースプロキシに担当させ、アプリケーションコンテナは外部に直接公開しない構成に変更します。
 
 6.1. コンテナの再起動 (ローカルバインド)
-Bash
+
+```bash
 
 # 既存のコンテナを停止・削除
 
@@ -249,9 +252,11 @@ docker run -d --name todoapp \
   --env-file .env \
   -p 127.0.0.1:8000:8000 \
   todoapp:latest
-6.2. NginxとCertbotのインストール・設定
-Bash
+```
 
+6.2. NginxとCertbotのインストール・設定
+
+```bash
 # 必要なパッケージをインストール
 
 sudo apt-get update && sudo apt-get install -y nginx certbot python3-certbot-nginx
@@ -278,17 +283,21 @@ EOF
 
 sudo ln -sf /etc/nginx/sites-available/todoapp /etc/nginx/sites-enabled/todoapp
 sudo nginx -t && sudo systemctl reload nginx
+```
+
 6.3. Let's EncryptによるSSL証明書の取得
 対話形式でメールアドレスの登録や規約への同意が求められます。
 
-Bash
 
+```bash
 # <FQDN>はあなたのドメインに書き換える
 
 sudo certbot --nginx -d <FQDN>
 ✨ Certbotが自動的にNginxの設定を更新し、HTTPS (443) を有効化、およびHTTPからHTTPSへのリダイレクト設定を追加してくれます。
+```
 
-7. 🩺 トラブルシューティング
+## 7. 🩺 トラブルシューティング
+
 問題が発生した場合のチェックポイントです。
 
 リダイレクトURIの不一致:
@@ -320,8 +329,9 @@ docker logs todoapp -n 100
 
 sudo timedatectl を実行し、NTPサービスが有効で時刻が同期されているか確認してください。トークンの有効期限検証に影響することがあります。
 
-8. 🚢 運用コマンド・更新手順
-Bash
+## 8. 🚢 運用コマンド・更新手順
+
+```bash
 
 # ログをリアルタイムで確認
 
@@ -341,12 +351,13 @@ docker run -d --name todoapp --restart=always --env-file .env -p 127.0.0.1:8000:
 docker build -t todoapp:latest .
 
 # その後、上記のコンテナ再作成コマンドを実行
+```
 
-9. (任意) docker-compose を利用する場合
+## 9. (任意) docker-compose を利用する場合
+
 docker-compose をインストール後、todoapp ディレクトリに以下の docker-compose.yml を作成すると、docker compose up -d で簡単に起動・管理できます。
 
-Bash
-
+```bash
 sudo apt-get install -y docker-compose
 YAML
 
@@ -360,7 +371,11 @@ services:
     env_file: .env
     ports:
       - "127.0.0.1:8000:8000"
-10. 🛡️ セキュリティのベストプラクティス
+
+```
+
+## 10. 🛡️ セキュリティのベストプラクティス
+
 シークレット管理: .env ファイルの代わりに、Azure Key Vault を使用してシークレットを安全に管理し、VM起動時に取得することを検討してください。
 
 ユーザー割り当て: Entra IDのエンタープライズアプリケーション設定で ユーザー割り当てを必須 にし、許可されたユーザーのみがアプリを利用できるように制限します。

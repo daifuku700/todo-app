@@ -1,6 +1,6 @@
 # models.py
 import os
-from sqlalchemy import create_engine, Column, Integer, String, Boolean, DateTime
+from sqlalchemy import create_engine, Column, Integer, String, Boolean, DateTime, Unicode
 from sqlalchemy.orm import declarative_base
 
 Base = declarative_base()
@@ -18,6 +18,6 @@ class Todo(Base):
     __tablename__ = "todos"
     id = Column(Integer, primary_key=True, autoincrement=True)
     user_oid = Column(String(64), index=True, nullable=False)  # Entra ID のユーザー OID
-    title = Column(String(255), nullable=False)
+    title = Column(Unicode(255), nullable=False)
     is_done = Column(Boolean, default=False, nullable=False)
     created_at = Column(DateTime, nullable=False)
