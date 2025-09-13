@@ -119,8 +119,11 @@ CREATE USER [todo_user] WITH PASSWORD = 'Strong_Pa55word_ChangeMe!';
 ALTER ROLE db_datareader ADD MEMBER [todo_user];
 ALTER ROLE db_datawriter ADD MEMBER [todo_user];
 ALTER ROLE db_ddladmin  ADD MEMBER [todo_user];  -- 初回起動時のテーブル作成(CREATE TABLE)に必要
-💡 Tip: アプリケーションの初回起動後、テーブルが作成されたら、セキュリティ向上のために db_ddladmin 権限は削除することを推奨します。
+ALTER TABLE todos
+ALTER COLUMN title NVARCHAR(255) NOT NULL;
 ```
+
+Tip: アプリケーションの初回起動後、テーブルが作成されたら、セキュリティ向上のために db_ddladmin 権限は削除することを推奨します。
 
 3.4. 接続文字列の準備
 後ほど .env ファイルで使用する接続文字列を準備します。
@@ -287,7 +290,6 @@ sudo nginx -t && sudo systemctl reload nginx
 
 6.3. Let's EncryptによるSSL証明書の取得
 対話形式でメールアドレスの登録や規約への同意が求められます。
-
 
 ```bash
 # <FQDN>はあなたのドメインに書き換える
