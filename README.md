@@ -112,15 +112,31 @@ SQLサーバー を作成します。(例: todo-sqls-japaneast)
 ポータルのクエリエディター (プレビュー) を使い、サーバー管理者としてサインインして以下のSQLクエリを実行します。
 
 ```sql
--- アプリケーション用のコンテインドユーザーを作成
+-- ユーザー作成
 CREATE USER [todo_user] WITH PASSWORD = 'Strong_Pa55word_ChangeMe!';
 
--- 必要な権限を付与
+-- 権限付与
 ALTER ROLE db_datareader ADD MEMBER [todo_user];
 ALTER ROLE db_datawriter ADD MEMBER [todo_user];
-ALTER ROLE db_ddladmin  ADD MEMBER [todo_user];  -- 初回起動時のテーブル作成(CREATE TABLE)に必要
-ALTER TABLE todos
-ALTER COLUMN title NVARCHAR(255) NOT NULL;
+ALTER ROLE db_ddladmin  ADD MEMBER [todo_user];
+-- ※db_ddladmin が CREATE TABLE 権限も持つ
+
+-- テーブルが存在しない場合のみ作成
+IF NOT EXISTS (SELECT * FROM sysobjects WHERE name='todos' AND xtype='U')
+BEGIN
+    CREATE TABLE todos (
+        id INT IDENTITY(1,1) PRIMARY KEY,
+        title NVARCHAR(255) NOT NULL,
+        created_at DATETIME DEFAULT GETDATE()
+    );
+END
+ELSE
+BEGIN
+    -- 既に存在する場合はカラム定義を変更（NOT NULL にするなど）
+    ALTER TABLE todos
+    ALTER COLUMN title NVARCHAR(255) NOT NULL;
+END
+
 ```
 
 Tip: アプリケーションの初回起動後、テーブルが作成されたら、セキュリティ向上のために db_ddladmin 権限は削除することを推奨します。
