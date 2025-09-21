@@ -86,7 +86,8 @@ def create_nginx_config(vm_domain):
         proxy_set_header   X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header   X-Forwarded-Proto $scheme;
     }}
-}}"""
+}}
+"""
 
     # 一時ファイルを作成してからsudoで移動
     temp_file = "/tmp/todoapp_nginx_config"
