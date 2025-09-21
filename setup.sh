@@ -26,7 +26,7 @@ echo "VM_DOMAIN: $VM_DOMAIN"
 # nginx設定ファイルの作成
 echo "nginx設定ファイルを作成しています..."
 
-sudo tee /etc/nginx/sites-available/todoapp > /dev/null << EOF
+sudo tee /etc/nginx/sites-available/todoapp > /dev/null << 'EOF'
 server {
     listen 80;
     server_name $VM_DOMAIN;
